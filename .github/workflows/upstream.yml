@@ -1,0 +1,41 @@
+name: Sync from upstream
+
+on:
+  schedule:
+    # 每天 02:00 UTC 时间执行
+    - cron: '0 2 * * *'
+  workflow_dispatch: # 允许手动触发工作流
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        branch: [main, 19.07, 21.02, 22.03, 23.05, employ] # 在这里添加你想要同步的其他分支
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+      with:
+        fetch-depth: 0
+        ref: ${{ matrix.branch }}
+
+    - name: Set up git
+      run: |
+        git config --global user.name 'GitHub Action'
+        git config --global user.email 'action@github.com'
+
+    - name: Add upstream
+      run: git remote add upstream https://github.com/Lienol/openwrt.git
+
+    - name: Fetch upstream
+      run: git fetch upstream
+
+    - name: Merge upstream changes
+      run: git merge upstream/${{ matrix.branch }} --allow-unrelated-histories
+
+    - name: Push changes
+      run: git push origin ${{ matrix.branch }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
